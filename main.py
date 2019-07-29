@@ -1,6 +1,7 @@
-from data_loader.simple_mnist_data_loader import SimpleMnistDataLoader
-from models.simple_mnist_model import SimpleMnistModel
-from trainers.simple_mnist_trainer import SimpleMnistModelTrainer
+import comet_ml
+from data_loader.data_loader import DataLoader
+from models.triplet_loss_model import TripletLossModel
+from trainers.triplet_loss_trainer import TripletLossModelTrainer
 from utils.config import process_config
 from utils.dirs import create_dirs
 from utils.utils import get_args
@@ -15,17 +16,20 @@ def main():
         print("missing or invalid arguments")
         exit(0)
 
+    # args = get_args()
+    # config = process_config(args.config)
+
     # create the experiments dirs
-    create_dirs([config.callbacks.tensorboard_log_dir, config.callbacks.checkpoint_dir])
+    create_dirs([config.tensorboard_log_dir, config.checkpoint_dir])
 
     print('Create the data generator.')
-    data_loader = SimpleMnistDataLoader(config)
+    data_loader = DataLoader(config)
 
     print('Create the model.')
-    model = SimpleMnistModel(config)
+    model = TripletLossModel(config)
 
     print('Create the trainer')
-    trainer = SimpleMnistModelTrainer(model.model, data_loader.get_train_data(), config)
+    trainer = TripletLossModelTrainer(model.model, data_loader, config)
 
     print('Start training the model.')
     trainer.train()
