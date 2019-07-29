@@ -1,7 +1,7 @@
 from base.base_model import BaseModel
 import tensorflow as tf
 from tensorflow.python.keras.models import Model
-from tensorflow.python.keras.layers import Input, GlobalAvgPool2D, Flatten, Dense, Lambda
+from tensorflow.python.keras.layers import Input, Flatten, Dense, Lambda
 from tensorflow.python.keras.applications import ResNet50, VGG16
 from tensorflow.python.keras.optimizers import Adam
 
@@ -120,7 +120,7 @@ class TripletLossModel(BaseModel):
         )
 
     def get_triplet_loss(self):
-        margin = self.config.triplet_loss_margin
+        margin = tf.constant(self.config.triplet_loss_margin, dtype=tf.float32)
 
         def triplet_loss(y_true, y_pred):
             """Computes the triplet loss with semi-hard negative mining.
@@ -191,7 +191,7 @@ class TripletLossModel(BaseModel):
         return triplet_loss
 
     def get_triplet_accuracy(self):
-        margin = self.config.triplet_loss_margin
+        margin = tf.constant(self.config.triplet_loss_margin, dtype=tf.float32)
 
         def accuracy(y_true, y_pred):
             """Computes the triplet accuracy.
