@@ -97,7 +97,7 @@ class TripletLossModel(BaseModel):
         self.build_model()
 
     def build_model(self):
-        self.inputs = Input(shape=(self.config.image_size, self.config.image_size, 3))
+        self.inputs = Input(shape=(self.config.image_size, self.config.image_size, 3), name='input')
 
         if self.config.backbone == 'resnet50':
             self.backbone = ResNet50(weights='imagenet', include_top=False, input_tensor=self.inputs, pooling='avg')
