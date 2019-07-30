@@ -1,5 +1,6 @@
 import cv2
 import numpy as np
+import imgaug.augmenters as iaa
 
 
 PADDING_VALUE = [0, 0, 0]
@@ -28,4 +29,39 @@ def resize_image_with_padding(image, new_size):
     image = cv2.copyMakeBorder(image, top, bottom, left, right, cv2.BORDER_CONSTANT, value=PADDING_VALUE)
 
     return image
+
+
+def get_augmenter():
+    augmenter = iaa.Sometimes(0.7, iaa.Sequential([
+        iaa.Fliplr(0.5),
+        iaa.Flipud(0.5),
+
+        iaa.OneOf([
+            iaa.Noop(),
+            iaa.Multiply((0.2, 2.0)),
+            iaa.GammaContrast((0.5, 1.7)),
+        ]),
+
+        iaa.OneOf([
+            iaa.Noop(),
+            iaa.JpegCompression(compression=(85, 95)),
+            iaa.MotionBlur(k=(10, 15)),
+            iaa.CoarsePepper(p=0.2, size_percent=0.1)
+        ]),
+
+        iaa.OneOf([
+            iaa.Noop(),
+            iaa.OneOf([
+                iaa.Crop(percent=((0.2, 0.5), 0, 0, 0), keep_size=False),
+                iaa.Crop(percent=(0, (0.2, 0.5), 0, 0), keep_size=False),
+                iaa.Crop(percent=(0, 0, (0.2, 0.5), 0), keep_size=False),
+                iaa.Crop(percent=(0, 0, 0, (0.2, 0.5)), keep_size=False),
+                iaa.Crop(percent=((0.1, 0.3), 0, (0.1, 0.3), 0), keep_size=False),
+                iaa.Crop(percent=(0, (0.1, 0.3), 0, (0.1, 0.3)), keep_size=False)
+            ]),
+            iaa.Crop(percent=(0.1, 0.2)),
+            iaa.PerspectiveTransform(0.1)
+        ]),
+    ]))
+    return augmenter
 

@@ -3,7 +3,7 @@ import os
 import math
 import json
 import numpy as np
-from utils.image_preprocessing import load_image, resize_image_with_padding
+from utils.image_preprocessing import load_image, resize_image_with_padding, get_augmenter
 
 
 class DataLoader(BaseDataLoader):
@@ -23,6 +23,9 @@ class DataLoader(BaseDataLoader):
 
         self.train_category_ids = [cat['id'] for cat in self.categories if cat['split'] == 'train']
         self.val_category_ids = [cat['id'] for cat in self.categories if cat['split'] == 'val']
+
+        if config.augment_images:
+            self.augmenter = get_augmenter()
 
     def get_train_data(self):
         pass
@@ -56,6 +59,8 @@ class DataLoader(BaseDataLoader):
                 labels = []
                 for ann in annotations[:self.config.batch_size]:
                     image = load_image(os.path.join(self.config.image_dir, ann['image_file']))
+                    if self.config.augment_images:
+                        image = self.augmenter.augment_image(image)
                     image = resize_image_with_padding(image, self.config.image_size)
                     label = ann['category_id']
                     images.append(image)
