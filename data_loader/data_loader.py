@@ -43,68 +43,47 @@ class DataLoader(BaseDataLoader):
         return num_of_steps
 
     def get_train_generator(self):
-        train_category_ids = self.train_category_ids
-        category_per_batch = self.category_per_batch
-        cat2ann = self.cat2ann
-        batch_size = self.config.batch_size
-        image_dir = self.config.image_dir
-        image_size = self.config.image_size
+        category_ids = np.pad(self.train_category_ids, [0, math.ceil(len(self.train_category_ids) / self.category_per_batch) * self.category_per_batch - len(self.train_category_ids)], mode='wrap')
 
-        def generator():
-            category_ids = np.pad(train_category_ids, [0, math.ceil(len(train_category_ids) / category_per_batch) * category_per_batch - len(train_category_ids)], mode='wrap')
-            while True:
-                for i in range(0, len(category_ids), category_per_batch):
-                    sample_annotations = []
-                    start, end = i, i + category_per_batch
-                    for cat_id in category_ids[start:end]:
-                        sample_annotations.extend(np.random.choice(cat2ann[cat_id], math.ceil(batch_size / category_per_batch), replace=False))
+        while True:
+            for i in range(0, len(category_ids), self.category_per_batch):
+                annotations = []
+                start, end = i, i + self.category_per_batch
+                for cat_id in category_ids[start:end]:
+                    annotations.extend(np.random.choice(self.cat2ann[cat_id], math.ceil(self.config.batch_size / self.category_per_batch), replace=False))
 
-                    images = []
-                    labels = []
-                    for ann in sample_annotations[:batch_size]:
-                        image = load_image(os.path.join(image_dir, ann['image_file']))
-                        image = resize_image_with_padding(image, image_size)
-                        label = ann['category_id']
-                        images.append(image)
-                        labels.append(label)
+                images = []
+                labels = []
+                for ann in annotations[:self.config.batch_size]:
+                    image = load_image(os.path.join(self.config.image_dir, ann['image_file']))
+                    image = resize_image_with_padding(image, self.config.image_size)
+                    label = ann['category_id']
+                    images.append(image)
+                    labels.append(label)
 
-                    yield np.array(images), np.array(labels)
+                yield np.array(images), np.array(labels)
 
-                np.random.shuffle(category_ids)
-
-        return generator()
+            np.random.shuffle(category_ids)
 
     def get_val_generator(self):
-        val_category_ids = self.val_category_ids
-        category_per_batch = self.category_per_batch
-        cat2ann = self.cat2ann
-        batch_size = self.config.batch_size
-        image_dir = self.config.image_dir
-        image_size = self.config.image_size
+        category_ids = np.pad(self.val_category_ids, [0, math.ceil(len(self.val_category_ids) / self.category_per_batch) * self.category_per_batch - len(self.val_category_ids)], mode='wrap')
 
-        num_of_example = sum(len(anns) for anns in [self.cat2ann[cat_id] for cat_id in val_category_ids])
-        num_of_steps = math.ceil(num_of_example / batch_size)
+        while True:
+            for i in range(0, len(category_ids), self.category_per_batch):
+                annotations = []
+                start, end = i, i + self.category_per_batch
+                for cat_id in category_ids[start:end]:
+                    annotations.extend(np.random.choice(self.cat2ann[cat_id], math.ceil(self.config.batch_size / self.category_per_batch), replace=False))
 
-        def generator():
-            category_ids = np.pad(val_category_ids, [0, math.ceil(len(val_category_ids) / category_per_batch) * category_per_batch - len(val_category_ids)], mode='wrap')
-            for _ in range(num_of_steps):
-                for i in range(0, len(category_ids), category_per_batch):
-                    sample_annotations = []
-                    start, end = i, i + category_per_batch
-                    for cat_id in category_ids[start:end]:
-                        sample_annotations.extend(np.random.choice(cat2ann[cat_id], math.ceil(batch_size / category_per_batch), replace=False))
+                images = []
+                labels = []
+                for ann in annotations[:self.config.batch_size]:
+                    image = load_image(os.path.join(self.config.image_dir, ann['image_file']))
+                    image = resize_image_with_padding(image, self.config.image_size)
+                    label = ann['category_id']
+                    images.append(image)
+                    labels.append(label)
 
-                    images = []
-                    labels = []
-                    for ann in sample_annotations[:batch_size]:
-                        image = load_image(os.path.join(image_dir, ann['image_file']))
-                        image = resize_image_with_padding(image, image_size)
-                        label = ann['category_id']
-                        images.append(image)
-                        labels.append(label)
-
-                    yield np.array(images), np.array(labels)
-
-        return generator()
+                yield np.array(images), np.array(labels)
 
 
