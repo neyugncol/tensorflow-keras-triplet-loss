@@ -6,6 +6,7 @@ from utils.config import process_config
 from utils.dirs import create_dirs
 from utils.utils import get_args
 
+
 def main():
     # capture the config path from the run arguments
     # then process the json configuration file

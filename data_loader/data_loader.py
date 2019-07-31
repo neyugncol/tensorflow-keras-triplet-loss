@@ -3,7 +3,7 @@ import os
 import math
 import json
 import numpy as np
-from utils.image_preprocessing import load_image, resize_image_with_padding, get_augmenter
+from utils.image_processing import load_image, resize_image_keep_ratio, pad_image, get_augmenter
 
 
 class DataLoader(BaseDataLoader):
@@ -45,6 +45,14 @@ class DataLoader(BaseDataLoader):
 
         return num_of_steps
 
+    def process_image(self, image, disable_augment=False):
+        if self.config.augment_images and not disable_augment:
+            image = self.augmenter.augment_image(image)
+        image = resize_image_keep_ratio(image, (self.config.image_size, self.config.image_size))
+        image = pad_image(image, (self.config.image_size, self.config.image_size))
+
+        return image
+
     def get_train_generator(self):
         category_ids = np.pad(self.train_category_ids, [0, math.ceil(len(self.train_category_ids) / self.category_per_batch) * self.category_per_batch - len(self.train_category_ids)], mode='wrap')
 
@@ -59,9 +67,7 @@ class DataLoader(BaseDataLoader):
                 labels = []
                 for ann in annotations[:self.config.batch_size]:
                     image = load_image(os.path.join(self.config.image_dir, ann['image_file']))
-                    if self.config.augment_images:
-                        image = self.augmenter.augment_image(image)
-                    image = resize_image_with_padding(image, self.config.image_size)
+                    image = self.process_image(image)
                     label = ann['category_id']
                     images.append(image)
                     labels.append(label)
@@ -84,7 +90,7 @@ class DataLoader(BaseDataLoader):
                 labels = []
                 for ann in annotations[:self.config.batch_size]:
                     image = load_image(os.path.join(self.config.image_dir, ann['image_file']))
-                    image = resize_image_with_padding(image, self.config.image_size)
+                    image = self.process_image(image, disable_augment=True)
                     label = ann['category_id']
                     images.append(image)
                     labels.append(label)

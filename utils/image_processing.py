@@ -8,25 +8,38 @@ PADDING_VALUE = [0, 0, 0]
 
 def load_image(image_path):
     image = cv2.imread(image_path)
-    assert image is not None, 'Image file not found.'
+    assert image is not None, 'image file not found'
     image = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
 
     return image
 
 
-def resize_image_with_padding(image, new_size):
-    width, height, _ = np.shape(image)
-    max_size = max(width, height)
-    ratio = new_size / max_size
-    width, height = int(width * ratio), int(height * ratio)
-    image = cv2.resize(image, (width, height))
+def resize_image_keep_ratio(image, max_size):
+    height, width, _ = np.shape(image)
+    max_width, max_height = max_size
 
-    delta_w = new_size - width
-    delta_h = new_size - height
+    width_scale = max_width / width
+    height_scale = max_height / height
+    scale = min(width_scale, height_scale)
+
+    new_size = round(width * scale), round(height * scale)
+
+    image = cv2.resize(image, new_size)
+
+    return image
+
+
+def pad_image(image, new_size, padding_value=PADDING_VALUE):
+    height, width, _ = np.shape(image)
+    new_width, new_height = new_size
+    assert width <= new_width and height <= new_height, 'new size must be equal or greater than image size'
+
+    delta_w = new_width - width
+    delta_h = new_height - height
     top, bottom = delta_h // 2, delta_h - (delta_h // 2)
     left, right = delta_w // 2, delta_w - (delta_w // 2)
 
-    image = cv2.copyMakeBorder(image, top, bottom, left, right, cv2.BORDER_CONSTANT, value=PADDING_VALUE)
+    image = cv2.copyMakeBorder(image, top, bottom, left, right, cv2.BORDER_CONSTANT, value=padding_value)
 
     return image
 
@@ -59,7 +72,6 @@ def get_augmenter():
                 iaa.Crop(percent=((0.1, 0.3), 0, (0.1, 0.3), 0), keep_size=False),
                 iaa.Crop(percent=(0, (0.1, 0.3), 0, (0.1, 0.3)), keep_size=False)
             ]),
-            iaa.Crop(percent=(0.1, 0.2)),
             iaa.PerspectiveTransform(0.1)
         ]),
     ]))
