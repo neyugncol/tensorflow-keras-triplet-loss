@@ -108,8 +108,9 @@ class TripletLossModel(BaseModel):
         else:
             raise Exception('Not supported backbone.')
 
-        net = Lambda(lambda x: tf.math.l2_normalize(x, axis=1), name='l2_normalize')(net)
+        net = Lambda(lambda x: tf.math.l2_normalize(x, axis=1), name='l2_normalize_1')(net)
         net = Dense(units=self.config.embedding_size, name='embedding')(net)
+        net = Lambda(lambda x: tf.math.l2_normalize(x, axis=1), name='l2_normalize_2')(net)
 
         self.model = Model(inputs=self.inputs, outputs=net, name='triplet_loss_model')
 
