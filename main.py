@@ -40,8 +40,10 @@ def main():
         trainer.train()
 
     else:
-        print('Create the model.')
+        print('Load the model.')
         embedding_model = TripletLossModel(config)
+        embedding_model.load(config.weight_file)
+
         knn_model = KNNModel(config, embedding_model)
 
         print('Create the evaluater')
