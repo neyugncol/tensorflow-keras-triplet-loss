@@ -3,7 +3,7 @@ import os
 import math
 import json
 import numpy as np
-from utils.image_processing import load_image, resize_image_keep_ratio, pad_image, get_augmenter
+from utils.image_processing import read_image, resize_image_keep_ratio, pad_image, get_augmenter
 
 
 class DataLoader(BaseDataLoader):
@@ -23,6 +23,7 @@ class DataLoader(BaseDataLoader):
 
         self.train_category_ids = [cat['id'] for cat in self.categories if cat['split'] == 'train']
         self.val_category_ids = [cat['id'] for cat in self.categories if cat['split'] == 'val']
+        self.test_category_ids = [cat['id'] for cat in self.categories if cat['split'] == 'test']
 
         if config.augment_images:
             self.augmenter = get_augmenter()
@@ -34,13 +35,13 @@ class DataLoader(BaseDataLoader):
         pass
 
     def get_train_steps(self):
-        num_of_example = sum(len(anns) for anns in [self.cat2ann[cat_id] for cat_id in self.train_category_ids])
+        num_of_example = len(ann for ann in self.annotations if ann['category_id'] in self.train_category_ids)
         num_of_steps = math.ceil(num_of_example / self.config.batch_size)
 
         return num_of_steps
 
     def get_val_steps(self):
-        num_of_example = sum(len(anns) for anns in [self.cat2ann[cat_id] for cat_id in self.val_category_ids])
+        num_of_example = len(ann for ann in self.annotations if ann['category_id'] in self.val_category_ids)
         num_of_steps = math.ceil(num_of_example / self.config.batch_size)
 
         return num_of_steps
@@ -50,6 +51,7 @@ class DataLoader(BaseDataLoader):
             image = self.augmenter.augment_image(image)
         image = resize_image_keep_ratio(image, (self.config.image_size, self.config.image_size))
         image = pad_image(image, (self.config.image_size, self.config.image_size))
+        image = image / 255.0
 
         return image
 
@@ -63,10 +65,9 @@ class DataLoader(BaseDataLoader):
                 for cat_id in category_ids[start:end]:
                     annotations.extend(np.random.choice(self.cat2ann[cat_id], math.ceil(self.config.batch_size / self.category_per_batch), replace=False))
 
-                images = []
-                labels = []
+                images, labels = [], []
                 for ann in annotations[:self.config.batch_size]:
-                    image = load_image(os.path.join(self.config.image_dir, ann['image_file']))
+                    image = read_image(os.path.join(self.config.image_dir, ann['image_file']))
                     image = self.process_image(image)
                     label = ann['category_id']
                     images.append(image)
@@ -86,15 +87,40 @@ class DataLoader(BaseDataLoader):
                 for cat_id in category_ids[start:end]:
                     annotations.extend(np.random.choice(self.cat2ann[cat_id], math.ceil(self.config.batch_size / self.category_per_batch), replace=False))
 
-                images = []
-                labels = []
+                images, labels = [], []
                 for ann in annotations[:self.config.batch_size]:
-                    image = load_image(os.path.join(self.config.image_dir, ann['image_file']))
+                    image = read_image(os.path.join(self.config.image_dir, ann['image_file']))
                     image = self.process_image(image, disable_augment=True)
                     label = ann['category_id']
                     images.append(image)
                     labels.append(label)
 
                 yield np.array(images), np.array(labels)
+
+    def get_test_generator(self):
+        annotations = [ann for ann in self.annotations if ann['category_id'] in self.test_category_ids]
+        for i in range(0, len(annotations), self.config.batch_size):
+            j = i + self.config.batch_size if i + self.config.batch_size <= len(annotations) else len(annotations)
+
+            images, labels = [], []
+            for ann in annotations[i:j]:
+                image = read_image(os.path.join(self.config.image_dir, ann['image_file']))
+                image = self.process_image(image, disable_augment=True)
+                label = ann['category_id']
+                images.append(image)
+                labels.append(label)
+
+            yield np.array(images), np.array(labels)
+
+    def get_test_references(self):
+        images, labels = [], []
+        for cat_id in self.test_category_ids:
+            category = self.cat2ann[cat_id]
+            image = self.process_image(os.path.join(self.config.image_dir, category['reference_image']), disable_augment=True)
+            label = category['id']
+            images.append(image)
+            labels.append(label)
+
+        return np.array(images), np.array(labels)
 
 

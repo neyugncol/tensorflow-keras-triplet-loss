@@ -6,7 +6,7 @@ import imgaug.augmenters as iaa
 PADDING_VALUE = [0, 0, 0]
 
 
-def load_image(image_path):
+def read_image(image_path):
     image = cv2.imread(image_path)
     assert image is not None, 'image file not found'
     image = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)

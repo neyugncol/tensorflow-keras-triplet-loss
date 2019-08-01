@@ -1,7 +1,9 @@
 import comet_ml
 from data_loader.data_loader import DataLoader
 from models.triplet_loss_model import TripletLossModel
+from models.knn_model import KNNModel
 from trainers.triplet_loss_trainer import TripletLossModelTrainer
+from evaluater.evaluater import ModelEvaluater
 from utils.config import process_config
 from utils.dirs import create_dirs
 from utils.utils import get_args
@@ -12,6 +14,7 @@ def main():
     # then process the json configuration file
     try:
         args = get_args()
+        phase = args.phase
         config = process_config(args.config)
     except:
         print("missing or invalid arguments")
@@ -26,14 +29,27 @@ def main():
     print('Create the data generator.')
     data_loader = DataLoader(config)
 
-    print('Create the model.')
-    model = TripletLossModel(config)
+    if phase == 'train':
+        print('Create the model.')
+        model = TripletLossModel(config)
 
-    print('Create the trainer')
-    trainer = TripletLossModelTrainer(model.model, data_loader, config)
+        print('Create the trainer')
+        trainer = TripletLossModelTrainer(model.model, data_loader, config)
 
-    print('Start training the model.')
-    trainer.train()
+        print('Start training the model.')
+        trainer.train()
+
+    else:
+        print('Create the model.')
+        embedding_model = TripletLossModel(config)
+        knn_model = KNNModel(config, embedding_model)
+
+        print('Create the evaluater')
+        evaluater = ModelEvaluater(knn_model, data_loader, config)
+
+        print('Start evaluate the model.')
+        evaluater.evaluate()
+
 
 
 if __name__ == '__main__':
