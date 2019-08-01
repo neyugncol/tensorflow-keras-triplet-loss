@@ -2,7 +2,7 @@ from base.base_model import BaseModel
 import tensorflow as tf
 from tensorflow.python.keras.models import Model
 from tensorflow.python.keras.layers import Input, Flatten, Dense, Lambda
-from tensorflow.python.keras.applications import ResNet50, VGG16
+from tensorflow.python.keras.applications import NASNetLarge, ResNet50, VGG16
 from tensorflow.python.keras.optimizers import Adam
 
 
@@ -99,6 +99,9 @@ class TripletLossModel(BaseModel):
     def build_model(self):
         self.inputs = Input(shape=(self.config.image_size, self.config.image_size, 3), name='input')
 
+        if self.config.backbone == 'nasnet':
+            self.backbone = NASNetLarge(weights='imagenet', include_top=False, input_shape=(self.config.image_size, self.config.image_size, 3), input_tensor=self.inputs, pooling='avg')
+            net = self.backbone.output
         if self.config.backbone == 'resnet50':
             self.backbone = ResNet50(weights='imagenet', include_top=False, input_tensor=self.inputs, pooling='avg')
             net = self.backbone.output
