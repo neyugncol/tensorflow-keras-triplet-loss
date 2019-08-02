@@ -117,7 +117,8 @@ class DataLoader(BaseDataLoader):
         for category in self.categories:
             if category['split'] != 'val':
                 continue
-            image = self.process_image(os.path.join(self.config.image_dir, category['reference_image']), disable_augment=True)
+            image = read_image(os.path.join(self.config.image_dir, category['reference_image']))
+            image = self.process_image(image, disable_augment=True)
             label = category['id']
             images.append(image)
             labels.append(label)
