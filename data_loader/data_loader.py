@@ -114,8 +114,9 @@ class DataLoader(BaseDataLoader):
 
     def get_test_references(self):
         images, labels = [], []
-        for cat_id in self.test_category_ids:
-            category = self.cat2ann[cat_id]
+        for category in self.categories:
+            if category['split'] != 'val':
+                continue
             image = self.process_image(os.path.join(self.config.image_dir, category['reference_image']), disable_augment=True)
             label = category['id']
             images.append(image)

@@ -1,7 +1,6 @@
 import comet_ml
 from data_loader.data_loader import DataLoader
 from models.triplet_loss_model import TripletLossModel
-from models.knn_model import KNNModel
 from trainers.triplet_loss_trainer import TripletLossModelTrainer
 from evaluater.evaluater import ModelEvaluater
 from utils.config import process_config
@@ -41,13 +40,11 @@ def main():
 
     else:
         print('Load the model.')
-        embedding_model = TripletLossModel(config)
-        embedding_model.load(config.weight_file)
-
-        knn_model = KNNModel(config, embedding_model)
+        model = TripletLossModel(config)
+        model.load(config.weight_file)
 
         print('Create the evaluater')
-        evaluater = ModelEvaluater(knn_model, data_loader, config)
+        evaluater = ModelEvaluater(model.model, data_loader, config)
 
         print('Start evaluate the model.')
         evaluater.evaluate()
