@@ -6,7 +6,7 @@ from tensorflow.python.keras.applications import NASNetLarge, InceptionV3, ResNe
 from tensorflow.python.keras.optimizers import Adam
 
 
-def _pairwise_distance(feature, squared=False):
+def _euclidean_pairwise_distance(feature, squared=True):
     """Computes the pairwise distance matrix with numerical stability.
     output[i, j] = || feature[i, :] - feature[j, :] ||_2
     Args:
@@ -45,6 +45,32 @@ def _pairwise_distance(feature, squared=False):
     pairwise_distances = tf.math.multiply(
         pairwise_distances,
         tf.cast(tf.math.logical_not(error_mask), dtype=tf.dtypes.float32))
+
+    num_data = tf.shape(feature)[0]
+    # Explicitly set diagonals to zero.
+    mask_offdiagonals = tf.ones_like(pairwise_distances) - tf.linalg.diag(
+        tf.ones([num_data]))
+    pairwise_distances = tf.math.multiply(pairwise_distances,
+                                          mask_offdiagonals)
+    return pairwise_distances
+
+
+def _cosine_pairwise_distance(feature):
+    """Computes the pairwise distance matrix with numerical stability.
+    output[i, j] = || feature[i, :] - feature[j, :] ||_2
+    Args:
+      feature: 2-D Tensor of size [number of data, feature dimension].
+      squared: Boolean, whether or not to square the pairwise distances.
+    Returns:
+      pairwise_distances: 2-D Tensor of size [number of data, number of data].
+    """
+    # yapf: disable
+    normalized_feature = tf.math.l2_normalize(feature, axis=1)
+    pairwise_distances = tf.math.subtract(1.0, tf.linalg.matmul(normalized_feature, normalized_feature, transpose_b=True))
+    # yapf: enable
+
+    # Deal with numerical inaccuracies. Set small negatives to zero.
+    pairwise_distances = tf.math.maximum(pairwise_distances, 0.0)
 
     num_data = tf.shape(feature)[0]
     # Explicitly set diagonals to zero.
@@ -94,6 +120,11 @@ class TripletLossModel(BaseModel):
         super(TripletLossModel, self).__init__(config)
         self.config = config
 
+        if self.config.distance_metric == 'euclidean':
+            self.pairwise_distance = _euclidean_pairwise_distance
+        elif self.config.distance_metric == 'cosine':
+            self.pairwise_distance = _cosine_pairwise_distance
+
         self.build_model()
 
     def build_model(self):
@@ -128,6 +159,7 @@ class TripletLossModel(BaseModel):
 
     def get_triplet_loss(self):
         margin = tf.constant(self.config.triplet_loss_margin, dtype=tf.float32)
+        pairwise_distance = self.pairwise_distance
 
         def triplet_loss(y_true, y_pred):
             """Computes the triplet loss with semi-hard negative mining.
@@ -143,7 +175,7 @@ class TripletLossModel(BaseModel):
             labels = tf.reshape(labels, [lshape[0], 1])
 
             # Build pairwise squared distance matrix.
-            pdist_matrix = _pairwise_distance(embeddings, squared=True)
+            pdist_matrix = pairwise_distance(embeddings)
             # Build pairwise binary adjacency matrix.
             adjacency = tf.math.equal(labels, tf.transpose(labels))
             # Invert so we can select negatives only.
@@ -199,6 +231,7 @@ class TripletLossModel(BaseModel):
 
     def get_triplet_accuracy(self):
         margin = tf.constant(self.config.triplet_loss_margin, dtype=tf.float32)
+        pairwise_distance = self.pairwise_distance
 
         def accuracy(y_true, y_pred):
             """Computes the triplet accuracy.
@@ -216,7 +249,7 @@ class TripletLossModel(BaseModel):
             batch_size = tf.size(labels)
 
             # Build pairwise squared distance matrix.
-            pdist_matrix = _pairwise_distance(embeddings, squared=True)
+            pdist_matrix = pairwise_distance(embeddings)
             # Build pairwise binary adjacency matrix.
             labels_adjacency = tf.math.equal(labels, tf.transpose(labels))
 
