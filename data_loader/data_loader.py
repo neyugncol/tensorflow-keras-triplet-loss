@@ -23,7 +23,7 @@ class DataLoader(BaseDataLoader):
 
         self.train_category_ids = [cat['id'] for cat in self.categories if cat['split'] == 'train']
         self.val_category_ids = [cat['id'] for cat in self.categories if cat['split'] == 'val']
-        self.test_category_ids = [cat['id'] for cat in self.categories if cat['split'] == 'test']
+        self.test_category_ids = [cat['id'] for cat in self.categories if cat['split'] == 'val']
 
         if config.augment_images:
             self.augmenter = get_augmenter()
@@ -35,13 +35,13 @@ class DataLoader(BaseDataLoader):
         pass
 
     def get_train_steps(self):
-        num_of_example = len(ann for ann in self.annotations if ann['category_id'] in self.train_category_ids)
+        num_of_example = len([ann for ann in self.annotations if ann['category_id'] in self.train_category_ids])
         num_of_steps = math.ceil(num_of_example / self.config.batch_size)
 
         return num_of_steps
 
     def get_val_steps(self):
-        num_of_example = len(ann for ann in self.annotations if ann['category_id'] in self.val_category_ids)
+        num_of_example = len([ann for ann in self.annotations if ann['category_id'] in self.val_category_ids])
         num_of_steps = math.ceil(num_of_example / self.config.batch_size)
 
         return num_of_steps

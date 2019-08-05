@@ -154,7 +154,7 @@ class TripletLossModel(BaseModel):
         self.model.compile(
             loss=self.get_triplet_loss(),
             optimizer=Adam(lr=self.config.lr),
-            metrics=[self.get_triplet_accuracy()]
+            metrics=[self.get_pairwise_accuracy()]
         )
 
     def get_triplet_loss(self):
@@ -229,11 +229,11 @@ class TripletLossModel(BaseModel):
 
         return triplet_loss
 
-    def get_triplet_accuracy(self):
+    def get_pairwise_accuracy(self):
         margin = tf.constant(self.config.triplet_loss_margin, dtype=tf.float32)
         pairwise_distance = self.pairwise_distance
 
-        def accuracy(y_true, y_pred):
+        def pairwise_accuracy(y_true, y_pred):
             """Computes the triplet accuracy.
                 Args:
                   y_true: 1-D integer `Tensor` with shape [batch_size] of
@@ -255,11 +255,11 @@ class TripletLossModel(BaseModel):
 
             embeddings_adjacency = tf.math.less_equal(pdist_matrix, margin)
 
-            accuracy = (tf.math.count_nonzero(tf.math.equal(labels_adjacency, embeddings_adjacency), dtype=tf.int32) - batch_size) / (tf.size(labels_adjacency) - batch_size)
+            pairwise_accuracy = (tf.math.count_nonzero(tf.math.equal(labels_adjacency, embeddings_adjacency), dtype=tf.int32) - batch_size) / (tf.size(labels_adjacency) - batch_size)
 
-            return accuracy
+            return pairwise_accuracy
 
-        return accuracy
+        return pairwise_accuracy
 
 
 
