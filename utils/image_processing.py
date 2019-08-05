@@ -1,6 +1,9 @@
 import cv2
 import numpy as np
 import imgaug.augmenters as iaa
+import matplotlib.pyplot as plt
+import seaborn as sns
+import pandas as pd
 
 
 PADDING_VALUE = [0, 0, 0]
@@ -42,6 +45,14 @@ def pad_image(image, new_size, padding_value=PADDING_VALUE):
     image = cv2.copyMakeBorder(image, top, bottom, left, right, cv2.BORDER_CONSTANT, value=padding_value)
 
     return image
+
+
+def get_confusion_matrix_figure(confusion_matrix, labels):
+    df = pd.DataFrame(confusion_matrix, labels, labels)
+    ax = sns.heatmap(df)
+    ax.set(xlabel='Predicted label', ylabel='True label', title='Confusion matrix')
+
+    return ax.get_figure()
 
 
 def get_augmenter():

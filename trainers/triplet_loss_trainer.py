@@ -38,6 +38,8 @@ class TripletLossModelTrainer(BaseTrain):
 
         self.callbacks.append(
             Evaluater(
+                eval_data=self.data_loader.get_val_generator(),
+                eval_steps=self.data_loader.get_val_steps(),
                 ref_data=self.data_loader.get_test_references(),
                 config=self.config,
                 comet_experiment=experiment
