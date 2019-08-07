@@ -1,5 +1,6 @@
 import cv2
 import numpy as np
+import imgaug
 import imgaug.augmenters as iaa
 import matplotlib.pyplot as plt
 import seaborn as sns
@@ -71,8 +72,12 @@ def get_augmenter():
         iaa.OneOf([
             iaa.Noop(),
             iaa.JpegCompression(compression=(85, 95)),
+            iaa.GaussianBlur(sigma=(0.75, 2.25)),
             iaa.MotionBlur(k=(10, 15)),
-            iaa.CoarsePepper(p=0.2, size_percent=0.1)
+            iaa.Sequential([
+                iaa.Resize({'longer-side': 48, 'shorter-side': 'keep-aspect-ratio'}, interpolation=imgaug.ALL),
+                iaa.Resize({'longer-side': 224, 'shorter-side': 'keep-aspect-ratio'}, interpolation=imgaug.ALL)
+            ])
         ]),
 
         iaa.OneOf([
