@@ -21,7 +21,7 @@ class PerfectStoreDataLoader(TripletLossDataLoader):
     def augment_image(self, image, is_reference):
         if is_reference:
             image = self.reference_augmenter.augment_image(image)
-        else:
+        elif self.config.augment_images:
             image = self.augmenter.augment_image(image)
         return image
 
