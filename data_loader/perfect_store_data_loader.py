@@ -16,7 +16,6 @@ class PerfectStoreDataLoader(TripletLossDataLoader):
                                           'image_file': cat['reference_image'],
                                           'is_reference': True}
                               for cat in self.categories}
-
         self.reference_augmenter = self.build_reference_augmenter()
 
     def augment_image(self, image, is_reference):
@@ -103,7 +102,7 @@ class PerfectStoreDataLoader(TripletLossDataLoader):
                 order=[0, 1],
                 mode=ia.ALL,
             ),
-            iaa.Sometimes(0.3, iaa.Rot90(ia.ALL, keep_size=False)),
+            iaa.Sometimes(0.3, iaa.Rot90([1, 2, 3], keep_size=False)),
 
             iaa.OneOf([
                 iaa.Multiply((0.2, 1.2)),

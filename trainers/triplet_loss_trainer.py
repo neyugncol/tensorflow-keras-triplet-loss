@@ -40,7 +40,7 @@ class TripletLossModelTrainer(BaseTrain):
             Evaluater(
                 eval_data=self.data_loader.get_val_generator(),
                 eval_steps=self.data_loader.get_val_steps(),
-                eval_categories=self.data_loader.val_categories_ids,
+                eval_categories=self.data_loader.val_category_ids,
                 ref_data=self.data_loader.get_reference_data(),
                 config=self.config,
                 comet_experiment=experiment
