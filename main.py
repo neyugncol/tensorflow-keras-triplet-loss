@@ -1,5 +1,5 @@
 import comet_ml
-from data_loader.data_loader import DataLoader
+from data_loader.perfect_store_data_loader import PerfectStoreDataLoader
 from models.triplet_loss_model import TripletLossModel
 from trainers.triplet_loss_trainer import TripletLossModelTrainer
 from utils.config import process_config
@@ -25,7 +25,23 @@ def main():
     create_dirs([config.tensorboard_log_dir, config.checkpoint_dir])
 
     print('Create the data generator.')
-    data_loader = DataLoader(config)
+    data_loader = PerfectStoreDataLoader(config)
+
+    # import time
+    # t = []
+    # i = 0
+    # start = time.time()
+    # for images, label in data_loader.get_train_generator():
+    #     t.append(time.time() - start)
+    #     print(t[-1])
+    #     i = i + 1
+    #     if i > 10:
+    #         break
+    #     start = time.time()
+    # print('total: {}'.format(sum(t)))
+    # print('avg: {}'.format(sum(t)/len(t)))
+    #
+    # return
 
     if phase == 'train':
         print('Create the model.')
