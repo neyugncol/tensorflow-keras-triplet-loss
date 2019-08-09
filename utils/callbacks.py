@@ -8,10 +8,9 @@ from utils.image_processing import get_confusion_matrix_figure
 
 class Evaluater(callbacks.Callback):
 
-    def __init__(self, eval_data, eval_categories, eval_steps, ref_data, config, comet_experiment=None):
+    def __init__(self, eval_data, eval_steps, ref_data, config, comet_experiment=None):
         super(Evaluater, self).__init__()
         self.eval_data = eval_data
-        self.eval_categories = eval_categories
         self.eval_steps = eval_steps
         self.ref_data = ref_data
         self.config = config
@@ -35,15 +34,16 @@ class Evaluater(callbacks.Callback):
 
         eval_embeddings = np.concatenate(eval_embeddings)
         eval_labels = np.concatenate(eval_labels)
+        eval_categories = np.unique(eval_labels)
 
         pairwise_distance = cdist(eval_embeddings, ref_embeddings, metric=self.config.distance_metric)
         predictions = ref_labels[np.argmin(pairwise_distance, axis=1)]
 
         result = {
             'val_accuracy': metrics.accuracy_score(eval_labels, predictions),
-            'val_precision': metrics.precision_score(eval_labels, predictions, average='macro'),
-            'val_recall': metrics.recall_score(eval_labels, predictions, average='macro'),
-            'val_f1_score': metrics.f1_score(eval_labels, predictions, average='macro')
+            'val_precision': metrics.precision_score(eval_labels, predictions, labels=eval_categories, average='macro'),
+            'val_recall': metrics.recall_score(eval_labels, predictions, labels=eval_categories, average='macro'),
+            'val_f1_score': metrics.f1_score(eval_labels, predictions, labels=eval_categories, average='macro')
         }
 
         print(' Result: {}'.format(' - '.join(['{}: {}'.format(key, value) for key, value in result.items()])))
@@ -53,6 +53,6 @@ class Evaluater(callbacks.Callback):
         if self.comet_experiment is not None:
             self.comet_experiment.log_metrics(result, step=self.train_step)
 
-            cf_mat = metrics.confusion_matrix(eval_labels, predictions, labels=self.eval_categories)
-            cf_figure = get_confusion_matrix_figure(cf_mat, self.eval_categories)
+            cf_mat = metrics.confusion_matrix(eval_labels, predictions, labels=eval_categories)
+            cf_figure = get_confusion_matrix_figure(cf_mat, eval_categories)
             self.comet_experiment.log_figure('confusion_matrix', cf_figure)
