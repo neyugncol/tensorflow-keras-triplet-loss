@@ -28,7 +28,7 @@ class TripletLossDataLoader(BaseDataLoader):
         # self.test_category_ids = [cat['id'] for cat in self.categories if cat['split'] == 'val']
 
         if config.augment_images:
-            self.augmenter = self.build_augumenter()
+            self.augmenter = self.build_augmenter()
 
     def get_train_data(self):
         pass
@@ -72,7 +72,11 @@ class TripletLossDataLoader(BaseDataLoader):
                 annotations = []
                 start, end = i, i + self.category_per_batch
                 for cat_id in category_ids[start:end]:
-                    annotations.extend(np.random.choice(self.cat2ann[cat_id], math.ceil(self.config.batch_size / self.category_per_batch), replace=False))
+                    num_samples = math.ceil(self.config.batch_size / self.category_per_batch)
+                    num_samples = num_samples if num_samples <= len(self.cat2ann[cat_id]) else len(self.cat2ann[cat_id])
+                    annotations.extend(np.random.choice(self.cat2ann[cat_id],
+                                                        num_samples,
+                                                        replace=False))
 
                 images, labels = [], []
                 for ann in annotations[:self.config.batch_size]:
@@ -95,7 +99,11 @@ class TripletLossDataLoader(BaseDataLoader):
                 annotations = []
                 start, end = i, i + self.category_per_batch
                 for cat_id in category_ids[start:end]:
-                    annotations.extend(np.random.choice(self.cat2ann[cat_id], math.ceil(self.config.batch_size / self.category_per_batch), replace=False))
+                    num_samples = math.ceil(self.config.batch_size / self.category_per_batch)
+                    num_samples = num_samples if num_samples <= len(self.cat2ann[cat_id]) else len(self.cat2ann[cat_id])
+                    annotations.extend(np.random.choice(self.cat2ann[cat_id],
+                                                        num_samples,
+                                                        replace=False))
 
                 images, labels = [], []
                 for ann in annotations[:self.config.batch_size]:

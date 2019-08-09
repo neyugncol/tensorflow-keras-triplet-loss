@@ -34,19 +34,20 @@ class PerfectStoreDataLoader(TripletLossDataLoader):
         return image
 
     def get_train_generator(self):
-        category_per_batch = self.category_per_batch - 1
         category_ids = np.pad(self.train_category_ids, [0, math.ceil(
-            len(self.train_category_ids) / category_per_batch) * category_per_batch - len(
+            len(self.train_category_ids) / self.category_per_batch) * self.category_per_batch - len(
             self.train_category_ids)], mode='wrap')
 
         while True:
-            for i in range(0, len(category_ids), category_per_batch):
+            for i in range(0, len(category_ids), self.category_per_batch):
                 annotations = []
-                start, end = i, i + category_per_batch
+                start, end = i, i + self.category_per_batch
                 for cat_id in category_ids[start:end]:
                     annotations.append(self.cat2reference[cat_id])
+                    num_samples = math.ceil(self.config.batch_size / self.category_per_batch) - 1
+                    num_samples = num_samples if num_samples <= len(self.cat2ann[cat_id]) else len(self.cat2ann[cat_id])
                     annotations.extend(np.random.choice(self.cat2ann[cat_id],
-                                                        math.ceil(self.config.batch_size / category_per_batch),
+                                                        num_samples,
                                                         replace=False))
 
                 images, labels = [], []
@@ -81,7 +82,7 @@ class PerfectStoreDataLoader(TripletLossDataLoader):
                 order=[0, 1]
             ),
             iaa.Sometimes(0.3, iaa.Rot90(
-                k=ia.ALL,
+                k=[1, 2, 3],
                 keep_size=False
             ))
         ]))
