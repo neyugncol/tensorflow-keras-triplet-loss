@@ -19,6 +19,16 @@ class TripletLossModelTrainer(BaseTrain):
             self.callbacks.append(experiment.get_keras_callback())
 
         self.callbacks.append(
+            Evaluater(
+                eval_data=self.data_loader.get_val_generator(),
+                eval_steps=self.data_loader.get_val_steps(),
+                ref_data=self.data_loader.get_reference_data(),
+                config=self.config,
+                comet_experiment=experiment
+            )
+        )
+
+        self.callbacks.append(
             ModelCheckpoint(
                 filepath=os.path.join(self.config.checkpoint_dir, '%s-{epoch:02d}-{val_loss:.2f}.hdf5' % self.config.experiment_name),
                 monitor=self.config.checkpoint_monitor,
@@ -36,15 +46,6 @@ class TripletLossModelTrainer(BaseTrain):
             )
         )
 
-        self.callbacks.append(
-            Evaluater(
-                eval_data=self.data_loader.get_val_generator(),
-                eval_steps=self.data_loader.get_val_steps(),
-                ref_data=self.data_loader.get_reference_data(),
-                config=self.config,
-                comet_experiment=experiment
-            )
-        )
 
     def train(self):
         history = self.model.fit_generator(
@@ -52,8 +53,6 @@ class TripletLossModelTrainer(BaseTrain):
             steps_per_epoch=self.data_loader.get_train_steps(),
             epochs=self.config.num_epochs,
             verbose=self.config.verbose_training,
-            validation_data=self.data_loader.get_val_generator(),
-            validation_steps=self.data_loader.get_val_steps(),
             callbacks=self.callbacks,
         )
 

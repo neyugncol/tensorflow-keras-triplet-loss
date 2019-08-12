@@ -92,21 +92,17 @@ class TripletLossDataLoader(BaseDataLoader):
             np.random.shuffle(category_ids)
 
     def get_val_generator(self):
-        category_ids = np.pad(self.val_category_ids, [0, math.ceil(len(self.val_category_ids) / self.category_per_batch) * self.category_per_batch - len(self.val_category_ids)], mode='wrap')
+        annotations = [ann for ann in self.annotations if ann['category_id'] in self.val_category_ids]
 
         while True:
-            for i in range(0, len(category_ids), self.category_per_batch):
-                annotations = []
-                start, end = i, i + self.category_per_batch
-                for cat_id in category_ids[start:end]:
-                    num_samples = math.ceil(self.config.batch_size / self.category_per_batch)
-                    num_samples = num_samples if num_samples <= len(self.cat2ann[cat_id]) else len(self.cat2ann[cat_id])
-                    annotations.extend(np.random.choice(self.cat2ann[cat_id],
-                                                        num_samples,
-                                                        replace=False))
+            for i in range(0, len(annotations), self.config.batch_size):
+                try:
+                    batch = annotations[i:i+self.config.batch_size]
+                except IndexError:
+                    batch = annotations[i:]
 
                 images, labels = [], []
-                for ann in annotations[:self.config.batch_size]:
+                for ann in batch:
                     image = read_image(os.path.join(self.config.image_dir, ann['image_file']))
                     image = self.process_image(image)
                     label = ann['category_id']
