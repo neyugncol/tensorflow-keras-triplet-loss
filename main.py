@@ -10,16 +10,17 @@ from utils.utils import get_args
 def main():
     # capture the config path from the run arguments
     # then process the json configuration file
-    try:
-        args = get_args()
-        phase = args.phase
-        config = process_config(args.config)
-    except:
-        print("missing or invalid arguments")
-        exit(0)
+    # try:
+    #     args = get_args()
+    #     phase = args.phase
+    #     config = process_config(args.config)
+    # except:
+    #     print("missing or invalid arguments")
+    #     exit(0)
 
-    # args = get_args()
-    # config = process_config(args.config)
+    args = get_args()
+    phase = args.phase
+    config = process_config(args.config)
 
     # create the experiments dirs
     create_dirs([config.tensorboard_log_dir, config.checkpoint_dir])
@@ -52,6 +53,39 @@ def main():
 
         print('Start training the model.')
         trainer.train()
+    else:
+        import numpy as np
+        from scipy.spatial.distance import cdist
+        from sklearn import metrics
+        print('Load the model.')
+        model = TripletLossModel(config)
+        model.load(config.weight_file)
+
+        ########################################
+        ref_images, ref_labels = data_loader.get_reference_data()
+        ref_embeddings = model.predict(ref_images, batch_size=config.batch_size, verbose=1)
+        eval_embeddings = []
+        eval_labels = []
+        for (images, labels) in data_loader.get_val_generator():
+            embeddings = model.predict(images)
+            eval_embeddings.append(embeddings)
+            eval_labels.append(labels)
+
+        eval_embeddings = np.concatenate(eval_embeddings)
+        eval_labels = np.concatenate(eval_labels)
+        eval_categories = np.unique(eval_labels)
+
+        pairwise_distance = cdist(eval_embeddings, ref_embeddings, metric=config.distance_metric)
+        predictions = ref_labels[np.argmin(pairwise_distance, axis=1)]
+
+        result = {
+            'val_accuracy': metrics.accuracy_score(eval_labels, predictions),
+            'val_precision': metrics.precision_score(eval_labels, predictions, labels=eval_categories, average='macro'),
+            'val_recall': metrics.recall_score(eval_labels, predictions, labels=eval_categories, average='macro'),
+            'val_f1_score': metrics.f1_score(eval_labels, predictions, labels=eval_categories, average='macro')
+        }
+
+        print(' Result: {}'.format(' - '.join(['{}: {}'.format(key, value) for key, value in result.items()])))
 
 
 

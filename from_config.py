@@ -4,6 +4,7 @@ from utils.args import get_args
 from utils import factory
 import sys
 
+
 def main():
     # capture the config path from the run arguments
     # then process the json configuration fill
