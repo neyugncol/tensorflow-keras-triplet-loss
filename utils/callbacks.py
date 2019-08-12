@@ -53,6 +53,9 @@ class Evaluater(callbacks.Callback):
         if self.comet_experiment is not None:
             self.comet_experiment.log_metrics(result, step=self.train_step)
 
-            cf_mat = metrics.confusion_matrix(eval_labels, predictions, labels=eval_categories)
+            cf_mat = metrics.confusion_matrix(eval_labels, predictions, labels=ref_labels)
+            cf_mat = np.nan_to_num(cf_mat.astype(np.float) / cf_mat.sum(axis=0)[:, np.newaxis])
+            eval_category_ids = np.searchsorted(ref_labels, eval_categories)
+            cf_mat = cf_mat[eval_category_ids][:, eval_category_ids]
             cf_figure = get_confusion_matrix_figure(cf_mat, eval_categories)
             self.comet_experiment.log_figure('confusion_matrix', cf_figure)
