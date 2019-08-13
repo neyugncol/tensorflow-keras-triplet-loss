@@ -162,9 +162,6 @@ class TripletLossModel(BaseModel):
         pooling = self.supported_poolings[self.config.pooling]
         features = [pooling()(feature) for feature in features]
 
-        if self.config.l2_normalize:
-            features = [Lambda(lambda x: tf.math.l2_normalize(x, axis=1))(feature) for feature in features]
-
         if len(features) > 1:
             joint_op = self.supported_joint_ops[self.config.features_joint_op]
             features = joint_op()(features)
@@ -173,6 +170,9 @@ class TripletLossModel(BaseModel):
 
         if self.config.fc_layer:
             features = Dense(units=self.config.embedding_size)(features)
+
+        if self.config.l2_normalize:
+            features = Lambda(lambda x: tf.math.l2_normalize(x, axis=1))(features)
 
         self.model = Model(inputs=self.inputs, outputs=features, name='triplet_loss_model')
 
