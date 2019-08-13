@@ -1,7 +1,7 @@
 from base.base_model import BaseModel
 import tensorflow as tf
 from tensorflow.python.keras.models import Model
-from tensorflow.python.keras.layers import Input, Flatten, Dense, Lambda
+from tensorflow.python.keras.layers import Input, Flatten, GlobalAveragePooling2D, GlobalMaxPooling2D, Dense, Lambda, Add, Subtract, Multiply, Concatenate
 from tensorflow.python.keras.applications import NASNetLarge, InceptionV3, ResNet50, VGG16
 from tensorflow.python.keras.optimizers import Adam
 
@@ -125,31 +125,56 @@ class TripletLossModel(BaseModel):
         elif self.config.distance_metric == 'cosine':
             self.pairwise_distance = _cosine_pairwise_distance
 
+        self.supported_backbones = {
+            'nasnet': NASNetLarge,
+            'inceptionv3': InceptionV3,
+            'resnet50': ResNet50,
+            'vgg16': VGG16
+        }
+
+        self.supported_poolings = {
+            'max': GlobalMaxPooling2D,
+            'avg': GlobalAveragePooling2D,
+            'flatten': Flatten
+        }
+
+        self.supported_joint_ops = {
+            'add': Add,
+            'subtract': Subtract,
+            'multiply': Multiply,
+            'concat': Concatenate
+        }
+
         self.build_model()
 
     def build_model(self):
         self.inputs = Input(shape=(self.config.image_size, self.config.image_size, 3), name='input')
 
-        if self.config.backbone == 'nasnet':
-            self.backbone = NASNetLarge(weights='imagenet', include_top=False, input_shape=(self.config.image_size, self.config.image_size, 3), input_tensor=self.inputs, pooling='avg')
-            net = self.backbone.output
-        elif self.config.backbone == 'inceptionv3':
-            self.backbone = InceptionV3(weights='imagenet', include_top=False, input_tensor=self.inputs, pooling='avg')
-            net = self.backbone.output
-        elif self.config.backbone == 'resnet50':
-            self.backbone = ResNet50(weights='imagenet', include_top=False, input_tensor=self.inputs, pooling='avg')
-            net = self.backbone.output
-        elif self.config.backbone == 'vgg16':
-            self.backbone = VGG16(weights='imagenet', include_top=False, input_tensor=self.inputs)
-            net = Flatten()(self.backbone.output)
+        backbone = self.supported_backbones[self.config.backbone]
+        self.backbone = backbone(weights=self.config.backbone_weights,
+                                 include_top=False,
+                                 input_tensor=self.inputs)
+
+        features = [self.backbone.get_layer(name) for name in self.config.feature_layers]
+        if not features:
+            features = [self.backbone.layers[-1]]
+
+        pooling = self.supported_poolings[self.config.pooling]
+        features = [pooling()(feature) for feature in features]
+
+        if self.config.l2_normalize:
+            features = [Lambda(lambda x: tf.math.l2_normalize(x, axis=1), name='l2_normalize')(feature) for feature in features]
+
+        if len(features) > 1:
+            joint_op = self.supported_joint_ops[self.config.features_joint_op]
+            features = joint_op()(features)
         else:
-            raise Exception('Not supported backbone.')
+            features = features[0]
 
-        net = Lambda(lambda x: tf.math.l2_normalize(x, axis=1), name='l2_normalize_1')(net)
-        net = Dense(units=self.config.embedding_size, name='embedding')(net)
-        net = Lambda(lambda x: tf.math.l2_normalize(x, axis=1), name='l2_normalize_2')(net)
+        if self.config.fc_layer:
+            features = Dense(units=self.config.embedding_size)(features)
 
-        self.model = Model(inputs=self.inputs, outputs=net, name='triplet_loss_model')
+        self.model = Model(inputs=self.inputs, outputs=features, name='triplet_loss_model')
 
         self.model.compile(
             loss=self.get_triplet_loss(),
