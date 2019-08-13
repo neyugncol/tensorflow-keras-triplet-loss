@@ -155,7 +155,7 @@ class TripletLossModel(BaseModel):
                                  include_top=False,
                                  input_tensor=self.inputs)
 
-        features = [self.backbone.get_layer(name) for name in self.config.feature_layers]
+        features = [self.backbone.get_layer(name).output for name in self.config.feature_layers]
         if not features:
             features = [self.backbone.layers[-1]]
 
