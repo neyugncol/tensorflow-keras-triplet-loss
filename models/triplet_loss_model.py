@@ -163,7 +163,7 @@ class TripletLossModel(BaseModel):
         features = [pooling()(feature) for feature in features]
 
         if self.config.l2_normalize:
-            features = [Lambda(lambda x: tf.math.l2_normalize(x, axis=1), name='l2_normalize')(feature) for feature in features]
+            features = [Lambda(lambda x: tf.math.l2_normalize(x, axis=1))(feature) for feature in features]
 
         if len(features) > 1:
             joint_op = self.supported_joint_ops[self.config.features_joint_op]
