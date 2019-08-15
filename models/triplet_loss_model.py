@@ -157,7 +157,7 @@ class TripletLossModel(BaseModel):
 
         features = [self.backbone.get_layer(name).output for name in self.config.feature_layers]
         if not features:
-            features = [self.backbone.layers[-1]]
+            features = [self.backbone.output]
 
         pooling = self.supported_poolings[self.config.pooling]
         features = [pooling()(feature) for feature in features]
