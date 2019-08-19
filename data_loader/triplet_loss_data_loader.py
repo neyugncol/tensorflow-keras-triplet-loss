@@ -139,6 +139,11 @@ class TripletLossDataLoader(BaseDataLoader):
 
     def build_augmenter(self):
         augmenter = iaa.Sometimes(0.7, iaa.Sequential([
+            iaa.Sequential([
+                iaa.Resize({'longer-side': (96, 48), 'shorter-side': 'keep-aspect-ratio'}, interpolation=ia.ALL),
+                iaa.Resize({'longer-side': self.config.image_size, 'shorter-side': 'keep-aspect-ratio'},
+                           interpolation=ia.ALL)
+            ]),
             iaa.Affine(
                 scale=(0.8, 1.2),
                 translate_percent={"x": (-0.2, 0.2), "y": (-0.2, 0.2)},
@@ -171,11 +176,6 @@ class TripletLossDataLoader(BaseDataLoader):
                     iaa.Crop(percent=(0, (0.1, 0.3), 0, (0.1, 0.3)), keep_size=False)
                 ]),
                 iaa.PerspectiveTransform(0.1)
-            ]),
-
-            iaa.Sequential([
-                iaa.Resize({'longer-side': (96, 48), 'shorter-side': 'keep-aspect-ratio'}, interpolation=ia.ALL),
-                iaa.Resize({'longer-side': self.config.image_size, 'shorter-side': 'keep-aspect-ratio'}, interpolation=ia.ALL)
             ])
         ]))
 
