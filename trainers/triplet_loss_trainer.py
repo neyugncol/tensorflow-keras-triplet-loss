@@ -2,7 +2,7 @@ from comet_ml import Experiment
 from base.base_trainer import BaseTrain
 from utils.callbacks import Evaluater
 import os
-from tensorflow.python.keras.callbacks import ModelCheckpoint, TensorBoard
+from tensorflow.python.keras.callbacks import ModelCheckpoint, TensorBoard, ReduceLROnPlateau
 
 
 class TripletLossModelTrainer(BaseTrain):
@@ -29,6 +29,16 @@ class TripletLossModelTrainer(BaseTrain):
         )
 
         self.callbacks.append(
+            ReduceLROnPlateau(
+                monitor=self.config.checkpoint_monitor,
+                factor=self.config.lr_reduce_factor,
+                patience=self.config.lr_reduce_patience,
+                verbose=1,
+                mode=self.config.checkpoint_mode
+            )
+        )
+
+        self.callbacks.append(
             ModelCheckpoint(
                 filepath=os.path.join(self.config.checkpoint_dir, '%s-{epoch:02d}-{val_accuracy:.2f}.hdf5' % self.config.experiment_name),
                 monitor=self.config.checkpoint_monitor,
@@ -45,7 +55,6 @@ class TripletLossModelTrainer(BaseTrain):
                 write_graph=self.config.tensorboard_write_graph,
             )
         )
-
 
     def train(self):
         history = self.model.fit_generator(
