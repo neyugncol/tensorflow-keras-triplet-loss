@@ -115,6 +115,34 @@ def _masked_minimum(data, mask, dim=1):
     return masked_minimums
 
 
+def _hierarchical_margin(min_margin, max_margin, labels, hierarchical_lookup):
+
+    labels = labels[:, tf.newaxis, :]
+    adjacency = tf.math.equal(labels, tf.transpose(labels, [1, 0, 2]))
+
+    num_factors = tf.shape(hierarchical_lookup)[0]
+
+    adjacency = adjacency[:, :, tf.newaxis, :]
+    hshape = tf.shape(hierarchical_lookup)
+    hierarchical_factors = tf.reshape(hierarchical_lookup, [1, 1, hshape[0], hshape[1]])
+
+    factor_ids = tf.argmax(
+        tf.cast(
+            tf.reduce_all(
+                tf.math.equal(adjacency, hierarchical_factors),
+                axis=3
+            ),
+            dtype=tf.dtypes.int32
+        ),
+        axis=2,
+        output_type=tf.dtypes.int32
+    )
+
+    margin = min_margin + factor_ids / (num_factors - 1) * (max_margin - min_margin)
+
+    return tf.cast(margin, dtype=tf.dtypes.float32)
+
+
 class TripletLossModel(BaseModel):
     def __init__(self, config):
         super(TripletLossModel, self).__init__(config)
@@ -124,6 +152,11 @@ class TripletLossModel(BaseModel):
             self.pairwise_distance = _euclidean_pairwise_distance
         elif self.config.distance_metric == 'cosine':
             self.pairwise_distance = _cosine_pairwise_distance
+
+        if self.use_hierarchical_triplet_loss:
+            self.triplet_loss = self.get_hierarchical_triplet_loss()
+        else:
+            self.triplet_loss = self.get_triplet_loss()
 
         self.supported_backbones = {
             'nasnet': NASNetLarge,
@@ -177,7 +210,7 @@ class TripletLossModel(BaseModel):
         self.model = Model(inputs=self.inputs, outputs=features, name='triplet_loss_model')
 
         self.model.compile(
-            loss=self.get_triplet_loss(),
+            loss=self.triplet_loss,
             optimizer=Adam(lr=self.config.lr),
             metrics=[self.get_pairwise_accuracy()]
         )
@@ -235,6 +268,81 @@ class TripletLossModel(BaseModel):
             semi_hard_negatives = tf.where(mask_final, negatives_outside,
                                            negatives_inside)
 
+            loss_mat = tf.math.add(margin, pdist_matrix - semi_hard_negatives)
+
+            mask_positives = tf.cast(
+                adjacency, dtype=tf.dtypes.float32) - tf.linalg.diag(
+                tf.ones([batch_size]))
+
+            # In lifted-struct, the authors multiply 0.5 for upper triangular
+            #   in semihard, they take all positive pairs except the diagonal.
+            num_positives = tf.math.reduce_sum(mask_positives)
+
+            triplet_loss = tf.math.truediv(
+                tf.math.reduce_sum(
+                    tf.math.maximum(tf.math.multiply(loss_mat, mask_positives), 0.0)),
+                num_positives)
+
+            return triplet_loss
+
+        return triplet_loss
+
+    def get_hierarchical_triplet_loss(self):
+        min_margin = tf.constant(self.config.hierarchical_min_margin, dtype=tf.float32)
+        max_margin = tf.constant(self.config.hierarchical_max_margin, dtype=tf.float32)
+        hierarchical_lookup = tf.constant(self.config.hierarchical_lookup, dtype=tf.bool)
+        pairwise_distance = self.pairwise_distance
+
+        def triplet_loss(y_true, y_pred):
+            """Computes the triplet loss with semi-hard negative mining.
+                Args:
+                  y_true: 1-D integer `Tensor` with shape [batch_size] of
+                    multiclass integer labels.
+                  y_pred: 2-D float `Tensor` of embedding vectors. Embeddings should
+                    be l2 normalized.
+            """
+            labels, hlabels, embeddings = y_true[0], y_true[1:], y_pred
+            # Reshape label tensor to [batch_size, 1].
+            lshape = tf.shape(labels)
+            labels = tf.reshape(labels, [lshape[0], 1])
+
+            # Build pairwise squared distance matrix.
+            pdist_matrix = pairwise_distance(embeddings)
+            # Build pairwise binary adjacency matrix.
+            adjacency = tf.math.equal(labels, tf.transpose(labels))
+            # Invert so we can select negatives only.
+            adjacency_not = tf.math.logical_not(adjacency)
+
+            batch_size = tf.size(labels)
+
+            # Compute the mask.
+            pdist_matrix_tile = tf.tile(pdist_matrix, [batch_size, 1])
+            mask = tf.math.logical_and(
+                tf.tile(adjacency_not, [batch_size, 1]),
+                tf.math.greater(pdist_matrix_tile,
+                                tf.reshape(tf.transpose(pdist_matrix), [-1, 1])))
+            mask_final = tf.reshape(
+                tf.math.greater(
+                    tf.math.reduce_sum(
+                        tf.cast(mask, dtype=tf.dtypes.float32), 1, keepdims=True),
+                    0.0), [batch_size, batch_size])
+            mask_final = tf.transpose(mask_final)
+
+            adjacency_not = tf.cast(adjacency_not, dtype=tf.dtypes.float32)
+            mask = tf.cast(mask, dtype=tf.dtypes.float32)
+
+            # negatives_outside: smallest D_an where D_an > D_ap.
+            negatives_outside = tf.reshape(
+                _masked_minimum(pdist_matrix_tile, mask), [batch_size, batch_size])
+            negatives_outside = tf.transpose(negatives_outside)
+
+            # negatives_inside: largest D_an.
+            negatives_inside = tf.tile(
+                _masked_maximum(pdist_matrix, adjacency_not), [1, batch_size])
+            semi_hard_negatives = tf.where(mask_final, negatives_outside,
+                                           negatives_inside)
+
+            margin = _hierarchical_margin(min_margin, max_margin, hlabels, hierarchical_lookup)
             loss_mat = tf.math.add(margin, pdist_matrix - semi_hard_negatives)
 
             mask_positives = tf.cast(

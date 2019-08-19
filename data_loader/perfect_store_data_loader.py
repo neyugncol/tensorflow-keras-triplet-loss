@@ -16,6 +16,19 @@ class PerfectStoreDataLoader(TripletLossDataLoader):
                                           'image_file': cat['reference_image'],
                                           'is_reference': True}
                               for cat in self.categories}
+        if self.config.use_hierarchical_triplet_loss:
+            self.brands = list(set(cat['brand'] for cat in self.categories))
+            self.packagings = list(set(cat['packaging'] for cat in self.categories))
+            self.groups = list(set(cat['product_group'] for cat in self.categories))
+            for cat_id, annotations in self.cat2ann.items():
+                category = next(cat for cat in self.categories if cat['id'] == cat_id)
+                brand_id = self.brands.index(category['brand'])
+                packaging_id = self.packagings.index(category['packaging'])
+                group_id = self.groups.index(category['group'])
+                for ann in annotations:
+                    ann['brand_id'] = brand_id
+                    ann['packaging_id'] = packaging_id
+                    ann['group_id'] = group_id
         self.reference_augmenter = self.build_reference_augmenter()
 
     def augment_image(self, image, is_reference):
@@ -55,7 +68,10 @@ class PerfectStoreDataLoader(TripletLossDataLoader):
                     image = read_image(os.path.join(self.config.image_dir, ann['image_file']))
                     image = self.augment_image(image, ann.get('is_reference', False))
                     image = self.process_image(image)
-                    label = ann['category_id']
+                    if self.config.use_hierarchical_triplet_loss:
+                        label = [ann['category_id'], ann['brand_id'], ann['packaging_id'], ann['group_id']]
+                    else:
+                        label = ann['category_id']
                     images.append(image)
                     labels.append(label)
 
