@@ -41,9 +41,11 @@ class Evaluater(callbacks.Callback):
 
         result = {
             'val_accuracy': metrics.accuracy_score(eval_labels, predictions),
+            'val_balanced_accuracy': metrics.balanced_accuracy_score(eval_labels, predictions),
             'val_precision': metrics.precision_score(eval_labels, predictions, labels=eval_categories, average='macro'),
             'val_recall': metrics.recall_score(eval_labels, predictions, labels=eval_categories, average='macro'),
-            'val_f1_score': metrics.f1_score(eval_labels, predictions, labels=eval_categories, average='macro')
+            'val_f1_score': metrics.f1_score(eval_labels, predictions, labels=eval_categories, average='macro'),
+            'val_cohen_kappa': metrics.cohen_kappa_score(eval_labels, predictions, labels=eval_categories)
         }
 
         print(' Result: {}'.format(' - '.join(['{}: {}'.format(key, value) for key, value in result.items()])))
