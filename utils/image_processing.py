@@ -50,7 +50,7 @@ def pad_image(image, new_size, padding_value=PADDING_VALUE):
 
 def get_confusion_matrix_figure(confusion_matrix, labels):
     df = pd.DataFrame(confusion_matrix, labels, labels)
-    ax = sns.heatmap(df, annot=True, cmap=plt.cm.Blues, cbar=False)
+    ax = sns.heatmap(df, cmap=plt.cm.Blues, cbar=False)
     ax.set_xticklabels(ax.get_xticklabels(), rotation=45)
     ax.set(xlabel='Predicted label', ylabel='True label', title='Confusion matrix')
 
