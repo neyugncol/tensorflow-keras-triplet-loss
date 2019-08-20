@@ -301,7 +301,7 @@ class TripletLossModel(BaseModel):
                   y_pred: 2-D float `Tensor` of embedding vectors. Embeddings should
                     be l2 normalized.
             """
-            labels, hlabels, embeddings = y_true[0], y_true[1:], y_pred
+            labels, hlabels, embeddings = y_true[:, 0], y_true[:, 1:], y_pred
             # Reshape label tensor to [batch_size, 1].
             lshape = tf.shape(labels)
             labels = tf.reshape(labels, [lshape[0], 1])
