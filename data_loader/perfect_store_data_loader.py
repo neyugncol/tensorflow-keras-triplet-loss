@@ -25,6 +25,10 @@ class PerfectStoreDataLoader(TripletLossDataLoader):
                 brand_id = self.brands.index(category['brand'])
                 packaging_id = self.packagings.index(category['packaging'])
                 group_id = self.groups.index(category['group'])
+                ref_ann = self.cat2reference[cat_id]
+                ref_ann['brand_id'] = brand_id
+                ref_ann['packaging_id'] = packaging_id
+                ref_ann['group_id'] = group_id
                 for ann in annotations:
                     ann['brand_id'] = brand_id
                     ann['packaging_id'] = packaging_id
