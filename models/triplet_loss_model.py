@@ -138,7 +138,7 @@ def _hierarchical_margin(min_margin, max_margin, labels, hierarchical_lookup):
         output_type=tf.dtypes.int32
     )
 
-    margin = min_margin + factor_ids / (num_factors - 1) * (max_margin - min_margin)
+    margin = min_margin + tf.cast(factor_ids / (num_factors - 1), dtype=tf.dtypes.float32) * (max_margin - min_margin)
 
     return tf.cast(margin, dtype=tf.dtypes.float32)
 
@@ -153,7 +153,7 @@ class TripletLossModel(BaseModel):
         elif self.config.distance_metric == 'cosine':
             self.pairwise_distance = _cosine_pairwise_distance
 
-        if self.use_hierarchical_triplet_loss:
+        if self.config.use_hierarchical_triplet_loss:
             self.triplet_loss = self.get_hierarchical_triplet_loss()
         else:
             self.triplet_loss = self.get_triplet_loss()
@@ -212,7 +212,7 @@ class TripletLossModel(BaseModel):
         self.model.compile(
             loss=self.triplet_loss,
             optimizer=Adam(lr=self.config.lr),
-            metrics=[self.get_pairwise_accuracy()]
+            # metrics=[self.get_pairwise_accuracy()]
         )
 
     def get_triplet_loss(self):
