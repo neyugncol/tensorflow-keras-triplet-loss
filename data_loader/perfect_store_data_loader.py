@@ -112,7 +112,7 @@ class PerfectStoreDataLoader(TripletLossDataLoader):
     def build_reference_augmenter(self):
         augmenter = iaa.Sometimes(0.7, iaa.Sequential([
             iaa.Sequential([
-                iaa.Resize({'longer-side': (192, 48), 'shorter-side': 'keep-aspect-ratio'}, interpolation=ia.ALL),
+                iaa.Resize({'longer-side': (144, 48), 'shorter-side': 'keep-aspect-ratio'}, interpolation=ia.ALL),
                 iaa.Resize({'longer-side': self.config.image_size, 'shorter-side': 'keep-aspect-ratio'},
                            interpolation=ia.ALL)
             ]),
