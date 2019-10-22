@@ -110,7 +110,7 @@ class ArcFaceModel(BaseModel):
 
         features = BatchNormalization()(features)
 
-        outputs = ArcFace(self.config.num_classes, kernel_regularizer=tf.keras.regularizers.l2(1e-4))([features, self.labels])
+        outputs = ArcFace(self.config.num_classes, regularizer=tf.keras.regularizers.l2(1e-4))([features, self.labels])
 
         self.model = Model(inputs=[self.inputs, self.labels], outputs=outputs, name='arcface_model')
 

@@ -3,6 +3,7 @@ import os
 import math
 import json
 import numpy as np
+from keras.utils.np_utils import to_categorical
 import imgaug as ia
 import imgaug.augmenters as iaa
 from utils.image_processing import read_image, resize_image_keep_ratio, pad_image
@@ -25,6 +26,8 @@ class ArcFaceDataLoader(BaseDataLoader):
 
         self.train_category_ids = [cat['id'] for cat in self.categories if cat['split'] == 'train']
         self.val_category_ids = [cat['id'] for cat in self.categories if cat['split'] == 'val']
+
+        self.class_mapping = {cat_id: i for i, cat_id in enumerate(self.train_category_ids)}
 
         if config.augment_images:
             self.augmenter = self.build_augmenter()
@@ -81,12 +84,12 @@ class ArcFaceDataLoader(BaseDataLoader):
                     image = read_image(os.path.join(self.config.image_dir, annotation['image_file']))
                     image = self.augment_image(image)
                     image = self.process_image(image)
-                    label = annotation['category_id']
+                    label = self.class_mapping[annotation['category_id']]
                     images.append(image)
                     labels.append(label)
 
                 images = np.array(images)
-                labels = np.array(labels)
+                labels = to_categorical(np.array(labels), num_classes=len(self.train_category_ids))
 
                 yield [images, labels], labels
 
@@ -103,12 +106,12 @@ class ArcFaceDataLoader(BaseDataLoader):
                     annotation = annotations[i * self.config.batch_size + j]
                     image = read_image(os.path.join(self.config.image_dir, annotation['image_file']))
                     image = self.process_image(image)
-                    label = annotation['category_id']
+                    label = self.class_mapping[annotation['category_id']]
                     images.append(image)
                     labels.append(label)
 
                 images = np.array(images)
-                labels = np.array(labels)
+                labels = to_categorical(np.array(labels), num_classes=len(self.train_category_ids))
 
                 yield [images, labels], labels
 
