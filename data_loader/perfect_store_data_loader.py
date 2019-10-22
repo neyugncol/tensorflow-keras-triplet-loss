@@ -16,6 +16,12 @@ class PerfectStoreDataLoader(TripletLossDataLoader):
                                           'image_file': cat['reference_image'],
                                           'is_reference': True}
                               for cat in self.categories}
+        # self.cat2rel = {}
+        # for cat in self.categories:
+        #     cat_id = cat['id']
+        #     if cat_id not in self.cat2rel:
+        #         self.cat2rel[cat_id] = []
+
         if self.config.use_hierarchical_triplet_loss:
             self.brands = list(set(cat['brand'] for cat in self.categories))
             self.packagings = list(set(cat['packaging'] for cat in self.categories))
@@ -96,11 +102,22 @@ class PerfectStoreDataLoader(TripletLossDataLoader):
 
     def build_augmenter(self):
         augmenter = iaa.Sometimes(0.5, iaa.Sequential([
-            iaa.Affine(
-                scale={"x": (0.95, 1.05), "y": (0.95, 1.05)},
-                translate_percent={"x": (-0.1, 0.1), "y": (-0.1, 0.1)},
-                order=[0, 1]
-            ),
+            iaa.OneOf([
+                iaa.OneOf([
+                    iaa.Crop(percent=((0.1, 0.3), 0, 0, 0), keep_size=False),
+                    iaa.Crop(percent=(0, (0.1, 0.3), 0, 0), keep_size=False),
+                    iaa.Crop(percent=(0, 0, (0.1, 0.3), 0), keep_size=False),
+                    iaa.Crop(percent=(0, 0, 0, (0.1, 0.3)), keep_size=False),
+                    iaa.Crop(percent=((0.05, 0.1), 0, (0.05, 0.1), 0), keep_size=False),
+                    iaa.Crop(percent=(0, (0.05, 0.1), 0, (0.05, 0.1)), keep_size=False)
+                ]),
+                iaa.Affine(
+                    scale={"x": (0.95, 1.05), "y": (0.95, 1.05)},
+                    translate_percent={"x": (-0.1, 0.1), "y": (-0.1, 0.1)},
+                    order=[0, 1]
+                ),
+                iaa.Noop()
+            ]),
             iaa.Sometimes(0.3, iaa.Rot90(
                 k=[1, 2, 3],
                 keep_size=False
