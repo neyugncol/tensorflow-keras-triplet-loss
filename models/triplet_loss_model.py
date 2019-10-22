@@ -3,7 +3,7 @@ import tensorflow as tf
 from tensorflow.python.keras.models import Model
 from tensorflow.python.keras.layers import Input, Flatten, GlobalAveragePooling2D, GlobalMaxPooling2D, Dense, Lambda, Add, Subtract, Multiply, Concatenate
 from tensorflow.python.keras.applications import NASNetLarge, InceptionV3, ResNet50, VGG16
-from tensorflow.python.keras.optimizers import Adam
+from tensorflow.python.keras.optimizers import Adam, SGD
 
 
 def _euclidean_pairwise_distance(feature, squared=True):
