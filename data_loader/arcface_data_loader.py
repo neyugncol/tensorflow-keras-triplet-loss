@@ -3,7 +3,7 @@ import os
 import math
 import json
 import numpy as np
-from keras.utils.np_utils import to_categorical
+from tensorflow.python.keras.utils.np_utils import to_categorical
 import imgaug as ia
 import imgaug.augmenters as iaa
 from utils.image_processing import read_image, resize_image_keep_ratio, pad_image
@@ -76,6 +76,8 @@ class ArcFaceDataLoader(BaseDataLoader):
         annotations = np.concatenate([anns[:round(len(anns) * 0.9)] for cat_id, anns in self.cat2ann.items() if cat_id in self.train_category_ids])
 
         while True:
+            np.random.shuffle(annotations)
+
             for i in range(len(annotations) // self.config.batch_size):
                 images = []
                 labels = []
@@ -93,12 +95,11 @@ class ArcFaceDataLoader(BaseDataLoader):
 
                 yield [images, labels], labels
 
-            np.random.shuffle(annotations)
-
     def get_val_generator(self):
         annotations = np.concatenate([anns[round(len(anns) * 0.9):] for cat_id, anns in self.cat2ann.items() if cat_id in self.train_category_ids])
 
         while True:
+
             for i in range(len(annotations) // self.config.batch_size):
                 images = []
                 labels = []
@@ -114,8 +115,6 @@ class ArcFaceDataLoader(BaseDataLoader):
                 labels = to_categorical(np.array(labels), num_classes=len(self.train_category_ids))
 
                 yield [images, labels], labels
-
-            np.random.shuffle(annotations)
 
     def get_test_generator(self):
         annotations = np.concatenate([anns for cat_id, anns in self.cat2ann.items() if
@@ -137,8 +136,6 @@ class ArcFaceDataLoader(BaseDataLoader):
                 labels = np.array(labels)
 
                 yield images, labels
-
-            np.random.shuffle(annotations)
 
     def get_reference_data(self):
         images, labels = [], []

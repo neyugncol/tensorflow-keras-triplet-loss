@@ -18,7 +18,7 @@ class ArcFace(Layer):
     def build(self, input_shape):
         super(ArcFace, self).build(input_shape[0])
         self.W = self.add_weight(name='W',
-                                shape=(input_shape[0][-1], self.n_classes),
+                                shape=(input_shape[0][-1].value, self.n_classes),
                                 initializer='glorot_uniform',
                                 trainable=True,
                                 regularizer=self.regularizer)
@@ -88,29 +88,42 @@ class ArcFaceModel(BaseModel):
                                  include_top=False,
                                  input_tensor=self.inputs)
 
-        features = [self.backbone.get_layer(name).output for name in self.config.feature_layers]
-        if not features:
-            features = [self.backbone.output]
+        # features = [self.backbone.get_layer(name).output for name in self.config.feature_layers]
+        # if not features:
+        #     features = [self.backbone.output]
+        #
+        # features = [BatchNormalization()(feature) for feature in features]
+        #
+        # pooling = self.supported_poolings[self.config.pooling]
+        # features = [pooling()(feature) for feature in features]
+        #
+        # if len(features) > 1:
+        #     joint_op = self.supported_joint_ops[self.config.features_joint_op]
+        #     features = joint_op()(features)
+        # else:
+        #     features = features[0]
+        #
+        # features = Dropout(0.5)(features)
+        #
+        # features = Dense(units=self.config.embedding_size, kernel_initializer='he_normal',
+        #                  kernel_regularizer=tf.keras.regularizers.l2(1e-4))(features)
+        #
+        # features = BatchNormalization()(features)
 
-        features = [BatchNormalization()(feature) for feature in features]
+        features = self.backbone.output
 
-        pooling = self.supported_poolings[self.config.pooling]
-        features = [pooling()(feature) for feature in features]
-
-        if len(features) > 1:
-            joint_op = self.supported_joint_ops[self.config.features_joint_op]
-            features = joint_op()(features)
-        else:
-            features = features[0]
+        features = BatchNormalization()(features)
 
         features = Dropout(0.5)(features)
+
+        features = Flatten()(features)
 
         features = Dense(units=self.config.embedding_size, kernel_initializer='he_normal',
                          kernel_regularizer=tf.keras.regularizers.l2(1e-4))(features)
 
         features = BatchNormalization()(features)
 
-        outputs = ArcFace(self.config.num_classes, regularizer=tf.keras.regularizers.l2(1e-4))([features, self.labels])
+        outputs = ArcFace(self.config.num_classes, s=15., m=0.35, regularizer=tf.keras.regularizers.l2(1e-4))([features, self.labels])
 
         self.model = Model(inputs=[self.inputs, self.labels], outputs=outputs, name='arcface_model')
 
