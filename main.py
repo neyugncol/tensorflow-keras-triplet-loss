@@ -66,7 +66,7 @@ def main():
         model = ArcFaceModel(config)
 
         print('Create the trainer')
-        trainer = ArcFaceModelTrainer(model.model, data_loader, config)
+        trainer = ArcFaceModelTrainer(model.model, model.predict_model, data_loader, config)
 
         print('Start training the model.')
         trainer.train()

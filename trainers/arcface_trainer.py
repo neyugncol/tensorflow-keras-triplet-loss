@@ -1,13 +1,14 @@
 from comet_ml import Experiment
 from base.base_trainer import BaseTrain
-from utils.callbacks import Evaluater
+from utils.callbacks import ArcFaceEvaluater
 import os
 from tensorflow.python.keras.callbacks import ModelCheckpoint, TensorBoard, ReduceLROnPlateau
 
 
 class ArcFaceModelTrainer(BaseTrain):
-    def __init__(self, model, data_loader, config):
+    def __init__(self, model, predict_model, data_loader, config):
         super(ArcFaceModelTrainer, self).__init__(model, data_loader, config)
+        self.predict_model = predict_model
         self.callbacks = []
         self.init_callbacks()
 
@@ -18,15 +19,16 @@ class ArcFaceModelTrainer(BaseTrain):
             experiment.log_parameters(self.config)
             self.callbacks.append(experiment.get_keras_callback())
 
-        # self.callbacks.append(
-        #     Evaluater(
-        #         eval_data=self.data_loader.get_val_generator(),
-        #         eval_steps=self.data_loader.get_val_steps(),
-        #         ref_data=self.data_loader.get_reference_data(),
-        #         config=self.config,
-        #         comet_experiment=experiment
-        #     )
-        # )
+        self.callbacks.append(
+            ArcFaceEvaluater(
+                model=self.predict_model,
+                eval_data=self.data_loader.get_val_generator(),
+                eval_steps=self.data_loader.get_val_steps(),
+                ref_data=self.data_loader.get_reference_data(),
+                config=self.config,
+                comet_experiment=experiment
+            )
+        )
 
         self.callbacks.append(
             ReduceLROnPlateau(

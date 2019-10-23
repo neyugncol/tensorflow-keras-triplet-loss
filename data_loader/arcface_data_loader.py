@@ -54,7 +54,7 @@ class ArcFaceDataLoader(BaseDataLoader):
         return num_of_steps
 
     def get_test_steps(self):
-        num_of_example = len([ann for ann in self.annotations if ann['category_id'] in self.val_category_ids])
+        num_of_example = round(len([ann for ann in self.annotations if ann['category_id'] in self.val_category_ids]) * 0.9)
         num_of_steps = math.ceil(num_of_example / self.config.batch_size)
 
         return num_of_steps
@@ -117,8 +117,7 @@ class ArcFaceDataLoader(BaseDataLoader):
                 yield [images, labels], labels
 
     def get_test_generator(self):
-        annotations = np.concatenate([anns for cat_id, anns in self.cat2ann.items() if
-                                      cat_id in self.val_category_ids])
+        annotations = np.concatenate([anns[10:] for cat_id, anns in self.cat2ann.items() if cat_id in self.val_category_ids])
 
         while True:
             for i in range(len(annotations) // self.config.batch_size):
@@ -138,11 +137,13 @@ class ArcFaceDataLoader(BaseDataLoader):
                 yield images, labels
 
     def get_reference_data(self):
+        annotations = np.concatenate([anns[:10] for cat_id, anns in self.cat2ann.items() if cat_id in self.val_category_ids])
+
         images, labels = [], []
-        for category in self.categories:
-            image = read_image(os.path.join(self.config.image_dir, category['reference_image']))
+        for ann in annotations:
+            image = read_image(os.path.join(self.config.image_dir, ann['image_file']))
             image = self.process_image(image)
-            label = category['id']
+            label = ann['category_id']
             images.append(image)
             labels.append(label)
 

@@ -142,3 +142,7 @@ class ArcFaceModel(BaseModel):
             metrics=['accuracy']
         )
 
+        features = Lambda(lambda x: tf.math.l2_normalize(x, axis=1))(features)
+
+        self.predict_model = Model(inputs=self.inputs, outputs=features, name='arcface_embedded_model')
+
