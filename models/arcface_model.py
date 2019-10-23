@@ -5,6 +5,7 @@ from tensorflow.python.keras.models import Model
 from tensorflow.python.keras.layers import Layer, Input, Flatten, GlobalAveragePooling2D, GlobalMaxPooling2D, Dense, Lambda, Add, Subtract, Multiply, Concatenate, BatchNormalization, Dropout
 from tensorflow.python.keras.applications import NASNetLarge, InceptionV3, ResNet50, VGG16
 from tensorflow.python.keras.optimizers import Adam
+import efficientnet.tfkeras as efn
 
 
 class ArcFace(Layer):
@@ -83,10 +84,10 @@ class ArcFaceModel(BaseModel):
         self.inputs = Input(shape=(self.config.image_size, self.config.image_size, 3), name='input')
         self.labels = Input(shape=(self.config.num_classes,))
 
-        backbone = self.supported_backbones[self.config.backbone]
-        self.backbone = backbone(weights=self.config.backbone_weights,
-                                 include_top=False,
-                                 input_tensor=self.inputs)
+        # backbone = self.supported_backbones[self.config.backbone]
+        # self.backbone = backbone(weights=self.config.backbone_weights,
+        #                          include_top=False,
+        #                          input_tensor=self.inputs)
 
         # features = [self.backbone.get_layer(name).output for name in self.config.feature_layers]
         # if not features:
@@ -110,13 +111,21 @@ class ArcFaceModel(BaseModel):
         #
         # features = BatchNormalization()(features)
 
-        features = self.backbone.output
+        # features = self.backbone.output
+        #
+        # features = BatchNormalization()(features)
+        #
+        # features = Dropout(0.5)(features)
+        #
+        # features = Flatten()(features)
 
-        features = BatchNormalization()(features)
+        backbone = efn.EfficientNetB3(input_tensor=self.inputs, include_top=False)
 
-        features = Dropout(0.5)(features)
+        features = backbone.output
 
-        features = Flatten()(features)
+        features1 = GlobalAveragePooling2D()(features)
+        features2 = GlobalMaxPooling2D()(features)
+        features = Concatenate()([features1, features2])
 
         features = Dense(units=self.config.embedding_size, kernel_initializer='he_normal',
                          kernel_regularizer=tf.keras.regularizers.l2(1e-4))(features)
