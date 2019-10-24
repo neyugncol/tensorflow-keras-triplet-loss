@@ -22,8 +22,8 @@ class ArcFaceModelTrainer(BaseTrain):
         self.callbacks.append(
             ArcFaceEvaluater(
                 model=self.predict_model,
-                eval_data=self.data_loader.get_val_generator(),
-                eval_steps=self.data_loader.get_val_steps(),
+                eval_data=self.data_loader.get_test_generator(),
+                eval_steps=self.data_loader.get_test_steps(),
                 ref_data=self.data_loader.get_reference_data(),
                 config=self.config,
                 comet_experiment=experiment
@@ -42,7 +42,7 @@ class ArcFaceModelTrainer(BaseTrain):
 
         self.callbacks.append(
             ModelCheckpoint(
-                filepath=os.path.join(self.config.checkpoint_dir, '%s-{epoch:02d}-{val_accuracy:.2f}.hdf5' % self.config.experiment_name),
+                filepath=os.path.join(self.config.checkpoint_dir, '%s-{epoch:02d}-{val_acc:.2f}.hdf5' % self.config.experiment_name),
                 monitor=self.config.checkpoint_monitor,
                 mode=self.config.checkpoint_mode,
                 save_best_only=self.config.checkpoint_save_best_only,

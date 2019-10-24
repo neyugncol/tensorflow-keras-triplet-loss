@@ -70,7 +70,7 @@ class ArcFaceEvaluater(callbacks.Callback):
 
     def __init__(self, model, eval_data, eval_steps, ref_data, config, comet_experiment=None):
         super(ArcFaceEvaluater, self).__init__()
-        self.model = model
+        self.predict_model = model
         self.eval_data = eval_data
         self.eval_steps = eval_steps
         self.ref_data = ref_data
@@ -83,7 +83,7 @@ class ArcFaceEvaluater(callbacks.Callback):
 
     def on_epoch_end(self, epoch, logs=None):
         ref_images, ref_labels = self.ref_data
-        ref_embeddings = self.model.predict(ref_images, batch_size=self.config.batch_size)
+        ref_embeddings = self.predict_model.predict(ref_images, batch_size=self.config.batch_size)
         label2embs = {}
         for emb, label in zip(ref_embeddings, ref_labels):
             if label not in label2embs:
@@ -95,7 +95,7 @@ class ArcFaceEvaluater(callbacks.Callback):
         eval_embeddings = []
         eval_labels = []
         for step, (images, labels) in tqdm(enumerate(self.eval_data), desc='Evaluate', total=self.eval_steps - 1, ncols=70):
-            embeddings = self.model.predict(images)
+            embeddings = self.predict_model.predict(images)
             eval_embeddings.append(embeddings)
             eval_labels.append(labels)
             if step >= self.eval_steps - 1:

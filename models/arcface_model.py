@@ -119,7 +119,7 @@ class ArcFaceModel(BaseModel):
         #
         # features = Flatten()(features)
 
-        backbone = efn.EfficientNetB3(input_tensor=self.inputs, include_top=False)
+        backbone = efn.EfficientNetB2(input_tensor=self.inputs, include_top=False)
 
         features = backbone.output
 
